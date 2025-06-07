@@ -33,6 +33,8 @@ namespace argparse
 		std::optional<std::string> env_var_;
 		std::vector<std::string> choices_;
 		ArgType type_ = ArgType::AUTO;
+		std::function<bool(const std::string&)> custom_validator_;
+		std::optional<std::string> custom_validator_error_;
 
 		static std::string normalize_name(std::string name)
 		{
@@ -69,13 +71,12 @@ namespace argparse
 		std::optional<std::string> get_env_value() const
 		{
 			if (!env_var_) return std::nullopt;
-			char* buffer = nullptr;
-			size_t size = 0;
-			if (_dupenv_s(&buffer, &size, env_var_->c_str()) == 0 && buffer != nullptr) {
-				std::string result(buffer);
-				free(buffer);
-				return result;
+			const char* env_value = std::getenv(env_var_->c_str());
+			if (env_value) {
+				std::cout << "Found env value: " << env_value << std::endl;
+				return std::string(env_value);
 			}
+			std::cout << "Environment variable " << *env_var_ << " not found!" << std::endl;
 			return std::nullopt;
 		}
 
@@ -149,6 +150,13 @@ namespace argparse
 			return *this;
 		}
 
+		Argument& custom_validation(std::function<bool(const std::string&)> validate_fn, const std::string& error_message)
+		{
+			custom_validator_ = std::move(validate_fn);
+			custom_validator_error_ = error_message;
+			return *this;
+		}
+
 		void validate(const std::string& value_str) const
 		{
 			if (type_ == ArgType::INT) {
@@ -170,6 +178,10 @@ namespace argparse
 				if (std::find(choices_.begin(), choices_.end(), value_str) == choices_.end()) {
 					throw ArgumentError("Invalid choice. Options: " + join_strings(choices_, ", "));
 				}
+			}
+				
+			if (custom_validator_ && !custom_validator_(value_str)) {
+				throw ArgumentError(custom_validator_error_.value_or("Validation failed."));
 			}
 		}
 
@@ -272,7 +284,20 @@ namespace argparse
 			std::unordered_map<std::string, std::string> provided_args;
 			ParsedArgs result;
 
-			if (auto_help_) {
+			/*if (auto_help_) {
+				for (int i = 1; i < argc; ++i) {
+					if (std::string(argv[i]) == "--help") {
+						std::cout << help();
+						std::exit(0);
+					}
+				}
+			}*/
+
+			if (auto_help_ && argc == 1) {
+				std::cout << help();
+				std::exit(0);
+			}
+			else {
 				for (int i = 1; i < argc; ++i) {
 					if (std::string(argv[i]) == "--help") {
 						std::cout << help();
@@ -280,7 +305,7 @@ namespace argparse
 					}
 				}
 			}
-
+			
 			for (int i = 1; i < argc; ++i) {
 				std::string arg = argv[i];
 				std::string name, value;
