@@ -9,4 +9,4 @@ This is a lightweight C++ argument parser. No dependencies just a single header 
    #include "arg_parser.hpp"
    ```
 ## 📁 Examples
-Examples are located in the [examples/](https://github.com/MartvdZalm/cpp-argparse/examples) folder.
+Examples are located in the [examples/](https://github.com/MartvdZalm/cpp-argparse/tree/master/examples) folder.
