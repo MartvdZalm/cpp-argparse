@@ -20,6 +20,7 @@
 *.idb
 *.aps
 
+docs/
 build/
 bin/
 .vs/
