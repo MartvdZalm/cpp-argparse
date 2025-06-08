@@ -522,7 +522,9 @@ namespace argparse
 				const std::string& name = arg.name();
 				result.values_[name] = arg.default_value();
 
-				if (provided_args.count(name)) {
+				if (arg.is_flag()) {
+					result.values_[name] = true;
+				} else if (provided_args.count(name)) {
 					const std::string& value_str = provided_args.at(name);
 					arg.validate(value_str);
 					result.values_[name] = convert_value(value_str, arg.type());
